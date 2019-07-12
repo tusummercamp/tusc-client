@@ -3,11 +3,11 @@ import json, math, time, asyncio, websockets, datetime, requests
 # ====================================
 # CONFIGURATION
 # ====================================
-SERVER_URL = "ws://localhost:4545"
+SERVER_URL = "ws://192.168.43.242:8080"
 SPEED_URL ='https://32mo5c9zs2.execute-api.us-east-1.amazonaws.com/Prod/data'
 TEMP_URL ='https://i90jji9q5j.execute-api.us-east-1.amazonaws.com/Prod/data'
 ODO_URL ='https://g9eyv3jby5.execute-api.us-east-1.amazonaws.com/Prod/data'
-SEND_PERIOD = 30
+SEND_PERIOD = 5
 
 temp = []
 odo = []
@@ -47,9 +47,9 @@ def flush():
         
 def parse_message(msg):
     data = msg.split('|')
-    speed.append((time.time(), float(data[2])))
-    temp.append((time.time(), float(data[4])))
-    odo.append((time.time(), float(data[6])))
+    speed.append((time.time(), float(data[1])))
+    temp.append((time.time(), float(data[3])))
+    odo.append((time.time(), float(data[5])))
     flush()
 
 async def handler():
