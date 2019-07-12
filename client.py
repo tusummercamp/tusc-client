@@ -1,39 +1,60 @@
-import json, math, time, asyncio, websockets
+import json, math, time, asyncio, websockets, datetime, requests
 
-server_uri = "ws://localhost:4545"
+# ====================================
+# CONFIGURATION
+# ====================================
+SERVER_URL = "ws://localhost:4545"
+SPEED_URL ='https://32mo5c9zs2.execute-api.us-east-1.amazonaws.com/Prod/data'
+TEMP_URL ='https://i90jji9q5j.execute-api.us-east-1.amazonaws.com/Prod/data'
+ODO_URL ='https://g9eyv3jby5.execute-api.us-east-1.amazonaws.com/Prod/data'
+SEND_PERIOD = 30
+
 temp = []
 odo = []
 speed = []
 lastSend = 0
 
+def data_filter(data):
+    result_array = []
+    temp_array = []
+    for time, value in data:
+        if len(temp_array) > 0 and int(temp_array[-1][0]) != int(time):
+            times, values = list(zip(*temp_array))
+            average_value = math.floor(sum(values) / len(values) * 100) / 100
+            result_array.append({ "time": int(time), "value": average_value })
+            temp_array = []
+        else:
+            temp_array.append((time, value))
+    
+    return result_array
+
 def flush():
     global lastSend, temp, odo, speed
     now = time.time()
 
-    if abs(lastSend - now) > 5:
-        print("Should send data to {}: {}".format('https://temp', json.dumps(temp)))
-        print("Should send data to {}: {}".format('https://odo', json.dumps(odo)))
-        print("Should send data to {}: {}".format('https://speed', json.dumps(speed)))
-        lastSend = now
-        temp = []
-        odo = []
-        speed = []
+    if abs(lastSend - now) > SEND_PERIOD:
+        try:
+            requests.post(SPEED_URL, data=json.dumps(data_filter(speed)))
+            requests.post(TEMP_URL, data=json.dumps(data_filter(temp)))
+            requests.post(ODO_URL, data=json.dumps(data_filter(odo)))
+            lastSend = now
+            temp = []
+            odo = []
+            speed = []
+            print('Data sent')
+        except Exception as e:
+            print(str(e))
         
 def parse_message(msg):
-    data = list(map(lambda entry : entry.split(':'), msg.split('|')))
-    for entry in data:
-        metric, value = entry
-        if metric == 'Speed':
-            speed.append({ 'time': int(time.time()), 'value': float(value) })
-        elif metric == 'Temp':
-            temp.append({ 'time': int(time.time()), 'value': float(value) })
-        elif metric == 'Odo':
-            temp.append({ 'time': int(time.time()), 'value': float(value) })
+    data = msg.split('|')
+    speed.append((time.time(), float(data[2])))
+    temp.append((time.time(), float(data[4])))
+    odo.append((time.time(), float(data[6])))
     flush()
 
 async def handler():
-    global server_uri
-    async with websockets.connect(server_uri) as websocket:
+    global SERVER_URL
+    async with websockets.connect(SERVER_URL) as websocket:
         while True:
             msg = await websocket.recv()
             parse_message(msg)

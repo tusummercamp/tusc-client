@@ -1,4 +1,4 @@
-import threading, asyncio, websockets, time
+import threading, asyncio, websockets, time, random
 
 # Global stop flag
 stopFlag = False
@@ -19,8 +19,8 @@ class DataWorker (threading.Thread):
     def run(self):
         while not stopFlag:
             self.data = self.inc
-            self.inc += 1
-            time.sleep(1)
+            self.inc = random.randrange(2000, 7000) / 10
+            time.sleep(0.05)
 
     # Data getter
     def get(self):
@@ -36,7 +36,7 @@ messages over websockets.
 class MessagingWorker (threading.Thread):
     
     # Constructor
-    def __init__(self, interval=0.04):
+    def __init__(self, interval=0.05):
         threading.Thread.__init__(self)
         self.interval = interval
         self.connected = set()
@@ -46,7 +46,7 @@ class MessagingWorker (threading.Thread):
         while not stopFlag:
             data = dataWorker.get()
             if data:
-                self.broadcast("Speed:%s|Temp:%s|Bla:%s" % (data, data, data))
+                self.broadcast("|Speed|%s|Temp|%s|Odo|%s|" % (data, data, data))
 
             time.sleep(self.interval)
 
