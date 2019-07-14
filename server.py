@@ -11,15 +11,19 @@ class DataWorker (threading.Thread):
     # Constructor
     def __init__(self):
         threading.Thread.__init__(self)
-        self.data = 0
-        self.lastData = 0
-        self.inc = 0
+        self.data = (0, 0, 0)
+        self.lastData = (0, 0, 0)
+        self.inc = (0, 0, 0)
 
     # Generate data
     def run(self):
         while not stopFlag:
             self.data = self.inc
-            self.inc = random.randrange(2000, 7000) / 10
+            self.inc = (
+                random.randrange(2000, 7000) / 10,
+                random.randrange(2000, 7000) / 10,
+                random.randint(0, 3)
+            )
             time.sleep(0.05)
 
     # Data getter
@@ -46,7 +50,8 @@ class MessagingWorker (threading.Thread):
         while not stopFlag:
             data = dataWorker.get()
             if data:
-                self.broadcast("|Speed|%s|Temp|%s|Odo|%s|" % (data, data, data))
+                speed, temp, button = data
+                self.broadcast("Speed|%s|Temp|%s|Button|%s|" % (speed, temp, button))
 
             time.sleep(self.interval)
 
